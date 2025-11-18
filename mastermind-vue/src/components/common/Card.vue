@@ -1,5 +1,5 @@
 <script setup>
-const props = defineProps({
+const {title} = defineProps({
   title: {
     type: String,
     required: true
@@ -10,10 +10,10 @@ const props = defineProps({
 <template>
   <div class="card">
     <div class="card-header">
-      <h3 class="card-title">{{title}}</h3>
+      <h3 class="card-title">{{ title }}</h3>
     </div>
     <div class="card-body">
-      <slot />
+      <slot/>
     </div>
   </div>
 </template>

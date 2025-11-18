@@ -1,5 +1,5 @@
 <script setup>
-const props = defineProps({
+defineProps({
   label: {
     type: String,
     required: true
@@ -19,7 +19,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:modelValue']);
+defineEmits(['update:modelValue']);
 </script>
 
 <template>
