@@ -1,9 +1,12 @@
 <script setup>
 import Mastermind from "./components/game/Mastermind.vue";
+import Container from "./components/common/Container.vue";
 </script>
 
 <template>
-  <Mastermind/>
+  <Container>
+    <Mastermind/>
+  </Container>
 </template>
 
 <style scoped>
