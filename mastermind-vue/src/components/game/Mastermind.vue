@@ -2,7 +2,7 @@
 // Application State, View Model, Model  -- declarative --> View
 //                                      <-- declarative --
 
-import {onMounted, onUnmounted, reactive} from "vue";
+import {computed, onMounted, onUnmounted, reactive} from "vue";
 import Card from "../common/Card.vue";
 import Badge from "../common/Badge.vue";
 import InputText from "../common/InputText.vue";
@@ -10,7 +10,8 @@ import Button from "../common/Button.vue";
 import Row from "../common/Row.vue";
 import Column from "../common/Column.vue";
 import ProgressBar from "../common/ProgressBar.vue";
-import createSecret from "../../utils/mastermind-utils.js";
+import createSecret, {evaluateMove} from "../../utils/mastermind-utils.js";
+import Table from "../common/Table.vue";
 
 const game = reactive({
   level: 3,
@@ -79,6 +80,8 @@ function play() {
         game.lives--;
         initGameLevel();
       }
+    } else {
+      game.moves.push(evaluateMove(game.guess, game.secret));
     }
   }
 }
@@ -96,17 +99,35 @@ onUnmounted(() => {
     clearInterval(timerId);
   }
 });
+
+let triesLeft = computed(() => {
+  return game.max_moves - game.tries;
+});
+
+const HistoryTableColumnNames = [
+  "Guess",
+  "Perfect Match",
+  "Partial Match",
+  "Evaluation"
+];
+
+const MoveFields = [
+  "guess",
+  "perfectMatch",
+  "partialMatch",
+  "message"
+];
+
 </script>
 
 <template>
   <Row>
     <Column>
-
       <Card title="Game Console">
         <Badge color="primary" label="Game Level" :value="game.level"></Badge>
         <Badge color="success" label="Lives" :value="game.lives"></Badge>
-        <Badge color="info" label="Counter" :value="game.counter"></Badge>
         <Badge color="warning" label="Tries" :value="game.tries"></Badge>
+        <ProgressBar :value="triesLeft" :max-value="game.max_moves"/>
         <Badge color="danger" label="Counter" :value="game.counter"></Badge>
         <ProgressBar :value="game.counter"
                      :maxValue="game.max_counter"/>
@@ -119,7 +140,12 @@ onUnmounted(() => {
       </Card>
     </Column>
     <Column>
-      <Card title="Game History"></Card>
+      <Card title="Game History">
+        <Table :items="game.moves"
+               table-color="danger"
+               :columns="HistoryTableColumnNames"
+               :fields="MoveFields"/>
+      </Card>
     </Column>
   </Row>
 </template>
