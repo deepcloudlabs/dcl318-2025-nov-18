@@ -44,9 +44,43 @@ const game = reactive({
 });
  */
 //endregion
+function nextGameLevel() {
+  game.level++;
+  game.max_moves += 5;
+  game.lives += 2;
+  game.max_counter += 20;
+  game.tries = 0;
+  game.moves = [];
+  game.counter = game.max_counter;
+  game.secret = createSecret(game.level);
+}
+
+function initGameLevel() {
+  game.tries = 0;
+  game.moves = [];
+  game.counter = game.max_counter;
+  game.secret = createSecret(game.level);
+}
 
 function play() {
-
+  // TODO
+  if (Number(game.guess) === game.secret) {
+    if (game.level === game.max_level) {
+      //TODO: player wins!
+    } else {
+      nextGameLevel();
+    }
+  } else {
+    game.tries++;
+    if (game.tries === game.max_moves) {
+      if (game.lives === 0) {
+        //TODO: player loses!
+      } else {
+        game.lives--;
+        initGameLevel();
+      }
+    }
+  }
 }
 
 let timerId = null;
