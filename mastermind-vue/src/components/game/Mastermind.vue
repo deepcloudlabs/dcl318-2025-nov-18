@@ -12,6 +12,7 @@ import Column from "../common/Column.vue";
 import ProgressBar from "../common/ProgressBar.vue";
 import createSecret, {evaluateMove} from "../../utils/mastermind-utils.js";
 import Table from "../common/Table.vue";
+const LOCAL_STORAGE_KEY = "game-mastermind-vue";
 
 const game = reactive({
   level: 3,
@@ -89,6 +90,15 @@ function play() {
 let timerId = null;
 
 onMounted(() => {
+  let localState = localStorage.getItem(LOCAL_STORAGE_KEY);
+  if (localState) {
+     localState = JSON.parse(localState);
+     for (let field in localState) {
+         if(game.hasOwnProperty(field)) {
+           game[field] = localState[field];
+         }
+     }
+  }
   timerId = setInterval(() => {
     game.counter--;
     if (game.counter <= 0){
@@ -98,6 +108,7 @@ onMounted(() => {
       game.lives--;
       initGameLevel();
     }
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(game));
   }, 1_000);
 });
 
