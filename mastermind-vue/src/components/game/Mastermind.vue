@@ -91,6 +91,13 @@ let timerId = null;
 onMounted(() => {
   timerId = setInterval(() => {
     game.counter--;
+    if (game.counter <= 0){
+      if (game.lives === 0){
+        //TODO: player loses!
+      }
+      game.lives--;
+      initGameLevel();
+    }
   }, 1_000);
 });
 
