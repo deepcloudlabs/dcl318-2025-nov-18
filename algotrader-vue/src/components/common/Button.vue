@@ -13,7 +13,7 @@ defineProps({
 </script>
 
 <template>
-  <button :class='["btn", `btn-${color}`]'
+  <button :class='["btn", "btn-sm", `btn-${color}`]'
           :label="label">{{ label }}</button>
 </template>
 

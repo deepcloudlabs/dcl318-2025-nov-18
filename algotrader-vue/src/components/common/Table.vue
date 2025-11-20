@@ -51,7 +51,7 @@ const TableClasses = [
 </script>
 
 <template>
-  <table :class="TableClasses">
+  <table :class="TableClasses" v-if="items">
     <thead>
     <tr>
       <th v-for="column in columns">{{ column }}</th>

@@ -21,6 +21,7 @@ function onChange(event) {
             class="form-select">
       <option v-for="opt in options" :key="opt">{{ opt }}</option>
     </select>
+    <slot />
   </div>
 </template>
 

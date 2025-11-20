@@ -3,7 +3,6 @@
 import Card from "./common/Card.vue";
 import {computed, markRaw, onMounted, onUnmounted, reactive, ref} from "vue";
 import SelectBox from "./common/SelectBox.vue";
-import {io} from "socket.io-client";
 import Table from "./common/Table.vue";
 import Badge from "./common/Badge.vue";
 import Row from "./common/Row.vue";
@@ -22,21 +21,23 @@ import {
   PointElement
 } from "chart.js";
 
-ChartJS.register(Title, Tooltip, Legend, PointElement,LineElement, CategoryScale, LinearScale);
+ChartJS.register(Title, Tooltip, Legend, PointElement, LineElement, CategoryScale, LinearScale);
 
 const market = reactive({
   symbols: [],
   symbol: "BTCUSDT",
   windowSize: 50,
-  isMonitoring: false
+  isMonitoring: false,
+  marketBasket: ["btcusdt", "ethusdt", 'bnbusdt', 'solusdt', 'xrpusdt', 'dogeusdt'],
+  trades: {},
+  prices: {}
 });
 
-const trades = ref([]);
-const prices = ref([]);
+//const trades = ref({});
+//const prices = ref({});
 const timestamps = ref([]);
+let socket = null;
 
-
-const socket = io("ws://localhost:5555");
 
 const WINDOW_SIZES = [10, 25, 50, 100];
 const BINANCE_REST_API_URL = "https://api.binance.com/api/v3/ticker/price";
@@ -52,10 +53,6 @@ function fetchSymbols() {
         // market.symbols.sort();
       })
 }
-
-const totalVolume = computed(() => {
-  return trades.value.map(trade => trade["volume"]).reduce((acc, volume) => acc + volume, 0).toFixed(0);
-});
 
 const chartData = computed(() =>
     markRaw(
@@ -77,30 +74,71 @@ const chartData = computed(() =>
               pointHoverBorderWidth: 2,
               pointRadius: 1,
               pointHitRadius: 10,
-              data: [...prices.value]
+              data: [...prices.value[market.marketBasket[0]]]
             }
           ]
         })
 )
 onMounted(fetchSymbols);
 
-onMounted(() => {
-  socket.on("ticker", async (trade) => {
-    if (!market.isMonitoring) return;
-    trades.value.push(trade);
-    prices.value.push(trade["price"]);
-    timestamps.value.push(trade["timestamp"]);
-    if (trades.value.length > market.windowSize) {
-      const overflow = trades.value.length - market.windowSize;
-      trades.value.splice(0, overflow);
-      prices.value.splice(0, overflow);
-      timestamps.value.splice(0, overflow);
-    }
-  });
-});
 onUnmounted(() => {
   socket.close();
 })
+
+function removeFromBasket(selectedSymbol) {
+  market.marketBasket = market.marketBasket.filter(symbol => symbol !== selectedSymbol);
+}
+
+function addToBasket() {
+  if (market.marketBasket.includes(market.symbol.toLowerCase())) return;
+  market.marketBasket.push(market.symbol.toLowerCase());
+  market.trades[market.symbol.toLowerCase()] = [];
+  market.prices[market.symbol.toLowerCase()] = [];
+}
+
+function startMonitoring() {
+  market.isMonitoring = true;
+  const streams = market.marketBasket.map(symbol => `${symbol.toLowerCase()}@trade`).join("/");
+  socket = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+
+  socket.onopen = () => {
+    console.log("Connected to binance websocket service!");
+  }
+
+  socket.onmessage = (frame) => {
+    let trade = JSON.parse(frame.data);
+    const symbol = trade.stream.split('@')[0];
+    trade.data["symbol"] = trade.data["s"];
+    trade.data["price"] = Number(trade.data["p"]);
+    trade.data["quantity"] = Number(trade.data["q"]);
+    trade.data["volume"] = trade.data["price"] * trade.data["quantity"];
+    trade.data["timestamp"] = trade.data["t"];
+    trade.data["datetime"] = new Date(trade.data["t"]);
+    if (!market.isMonitoring) return;
+    if (!market.trades.hasOwnProperty(symbol)) {
+      market.trades[symbol] = [];
+      market.prices[symbol] = [];
+
+    }
+    market.trades[symbol].push(trade.data);
+    market.prices[symbol].push(trade.data["price"]);
+    timestamps.value.push(trade["timestamp"]);
+    if (market.trades[symbol].length > market.windowSize) {
+      const overflow = market.trades[symbol].length - market.windowSize;
+      market.trades[symbol].splice(0, overflow);
+      market.prices[symbol].splice(0, overflow);
+      timestamps.value.splice(0, overflow);
+    }
+  }
+}
+
+function stopMonitoring() {
+  market.isMonitoring = false;
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.close(1000, 'User closed the connection!');
+    socket = null;
+  }
+}
 </script>
 
 <template>
@@ -108,36 +146,38 @@ onUnmounted(() => {
     <SelectBox id="symbols"
                v-model:value="market.symbol"
                :options="market.symbols"
-               label="Market Symbol"/>
+               label="Market Symbol">
+      <Button label="Add" color="primary" @click="addToBasket"/>
+      <ul>
+        <li v-for="basketSymbol in market.marketBasket">
+          <Badge :displayOnly="true" color="primary" :value="basketSymbol">
+            <Button label="x" color="danger" @click="() => removeFromBasket(basketSymbol)"/>
+          </Badge>
+        </li>
+      </ul>
+    </SelectBox>
     <SelectBox id="windowSizes"
                v-model:value="market.windowSize"
                :options="WINDOW_SIZES"
                label="Window Size"/>
     <Row>
-      <Column>
-        <Button v-if="!market.isMonitoring"
-                @click="()=>{market.isMonitoring = !market.isMonitoring}"
-                label="Start Monitoring"
-                color="success"/>
-        <Button v-if="market.isMonitoring"
-                @click="()=>{market.isMonitoring = !market.isMonitoring}"
-                label="Stop Monitoring"
-                color="danger"/>
-      </Column>
-      <Column></Column>
+      <Button v-if="!market.isMonitoring"
+              @click="startMonitoring"
+              label="Start Monitoring"
+              color="success"/>
+      <Button v-if="market.isMonitoring"
+              @click="stopMonitoring"
+              label="Stop Monitoring"
+              color="danger"/>
     </Row>
   </Card>
   <Card title="Market Chart">
-    <Line :data="chartData"
-          style="width: 1080px; height: 720px;"
-          :options="CHART_OPTIONS"/>
 
   </Card>
-  <Card title="Market Data">
-    <Badge :value="totalVolume"
-           label="Total Volume"
-           color="info"/>
-    <Table :items="trades"
+  <Card v-if="market.marketBasket.length > 0"
+        v-for="symbol in market.marketBasket"
+        :title="`Market Data [${symbol.toUpperCase()}]`">
+    <Table :items="market.trades[symbol]"
            :fields="TRADE_FIELDS"
            :columns="TRADE_COLUMNS"/>
   </Card>
