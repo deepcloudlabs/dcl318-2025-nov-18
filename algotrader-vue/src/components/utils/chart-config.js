@@ -3,11 +3,18 @@ export const CHART_OPTIONS = {
     animation: false,
     maintainAspectRatio: true,
     scales: {
+        x: {
+            type: "category",
+            ticks: {
+                autoSkip: true,
+                maxTicksLimit: 10
+            }
+        },
         y: {
-            type: 'linear',
+            type: 'logarithmic',
             position: 'left',
             stack: "demo",
-            stackWeight: 2
+            stackWeight: 10
         }
     },
     plugins: {
@@ -16,7 +23,7 @@ export const CHART_OPTIONS = {
         },
         title: {
             display: true,
-            text: "Binance BTCUSDT Market Data"
+            text: "Binance Market Data"
         }
     }
 };

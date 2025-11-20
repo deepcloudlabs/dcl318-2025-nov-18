@@ -45,8 +45,7 @@ const TableClasses = [
   "table-striped-columns",
   "table-responsive",
   "table-hover",
-  `table-${tableColor}`
-];
+  `table-${tableColor}`];
 
 </script>
 
