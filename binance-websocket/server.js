@@ -61,8 +61,10 @@ async function main() {
             const model = {
                 symbol: frame.s,
                 price: frame.p,
+                volume: Number(frame.p) * Number(frame.q),
                 quantity: frame.q,
-                timestamp: frame.E
+                timestamp: frame.E,
+                datetime: new Date(frame.E)
             };
 
             const trade = new Trade(model);
